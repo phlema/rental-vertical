@@ -5,19 +5,19 @@ from odoo import api, fields, models, exceptions, _
 
 
 class TollChargeLine(models.Model):
-    _name = 'toll.charge.line'
-    _description = 'Toll Charge Line'
-    _order = 'toll_date desc'
+    _name = "toll.charge.line"
+    _description = "Toll Charge Line"
+    _order = "toll_date desc"
 
     amount = fields.Float(
-        string='Toll Charge Amount',
-        currency_field='company_currency_id',
+        string="Toll Charge Amount",
+        currency_field="company_currency_id",
     )
 
     analytic_account = fields.Char(
         string="Analytic Account",
         help="This is the analytic account given in CSV file. "
-             "It is not linked to Odoo analytic accounts."
+        "It is not linked to Odoo analytic accounts.",
     )
 
     axle_class = fields.Char(
@@ -29,16 +29,16 @@ class TollChargeLine(models.Model):
     )
 
     company_currency_id = fields.Many2one(
-        comodel_name='res.currency',
-        related='product_id.company_id.currency_id',
-        readonly=True, store=True)
-
-    distance = fields.Float(
-        string="Distance (km)"
+        comodel_name="res.currency",
+        related="product_id.company_id.currency_id",
+        readonly=True,
+        store=True,
     )
 
+    distance = fields.Float(string="Distance (km)")
+
     invoiced = fields.Boolean(
-        string='Invoiced?',
+        string="Invoiced?",
         compute="_compute_invoiced",
     )
 
@@ -49,12 +49,12 @@ class TollChargeLine(models.Model):
     )
 
     invoice_line_id = fields.Many2one(
-        comodel_name='account.invoice.line',
+        comodel_name="account.invoice.line",
         string="Invoice Line",
     )
 
     sale_line_id = fields.Many2one(
-        comodel_name='sale.order.line',
+        comodel_name="sale.order.line",
         string="Sale Order Line",
     )
 
@@ -83,9 +83,9 @@ class TollChargeLine(models.Model):
     )
 
     product_id = fields.Many2one(
-        comodel_name='product.product',
+        comodel_name="product.product",
         string="Product",
-        compute='_compute_product_id',
+        compute="_compute_product_id",
         store=True,
     )
 
@@ -119,56 +119,60 @@ class TollChargeLine(models.Model):
 
     toll_date = fields.Datetime(
         string="Date",
-        compute='_compute_toll_date',
+        compute="_compute_toll_date",
         store=True,
     )
 
     toll_type = fields.Selection(
-        [
-            ("toll", "Toll")
-        ],
+        [("toll", "Toll")],
         string="Type",
     )
 
     chargeable = fields.Boolean(
-        string='Chargeable?',
+        string="Chargeable?",
         default=True,
     )
 
-    weight_class = fields.Char(
-        string='Weight Class'
-    )
+    weight_class = fields.Char(string="Weight Class")
 
     editable = fields.Boolean(
         string="Editable",
-        compute='_compute_editable',
+        compute="_compute_editable",
     )
 
     @api.multi
-    @api.depends('invoice_id')
+    @api.depends("invoice_id")
     def _compute_editable(self):
         for cl in self:
-            cl.editable = cl.invoice_id.state == 'draft' if cl.invoice_id else True
+            cl.editable = cl.invoice_id.state == "draft" if cl.invoice_id else True
 
     @api.multi
-    @api.depends('invoice_line_id', 'invoice_line_id.toll_product_line_ids', 'chargeable')
+    @api.depends(
+        "invoice_line_id", "invoice_line_id.toll_product_line_ids", "chargeable"
+    )
     def _compute_invoiced(self):
         for cl in self:
-            cl.invoiced = cl.chargeable and cl.invoice_line_id and cl.invoice_line_id.toll_product_line_ids
+            cl.invoiced = (
+                cl.chargeable
+                and cl.invoice_line_id
+                and cl.invoice_line_id.toll_product_line_ids
+            )
 
     @api.multi
-    @api.depends('license_plate', 'toll_date')
+    @api.depends("license_plate", "toll_date")
     def _compute_name(self):
         for cl in self:
-            cl.name = cl.license_plate + " on " + cl.toll_date.strftime("%Y-%m-%d %H:%M")
+            cl.name = (
+                cl.license_plate + " on " + cl.toll_date.strftime("%Y-%m-%d %H:%M")
+            )
 
     @api.multi
-    @api.depends('license_plate')
+    @api.depends("license_plate")
     def _compute_product_id(self):
-        products = self.env['product.product']
+        products = self.env["product.product"]
         for cl in self:
             if cl.license_plate:
-                prod_domain = [('license_plate', '=', cl.license_plate)]
+                prod_domain = [("license_plate", "=", cl.license_plate)]
                 product = products.search(prod_domain)
                 if len(product) > 1:
                     raise exceptions.ValidationError(
@@ -179,7 +183,7 @@ class TollChargeLine(models.Model):
                     cl.product_id = product
 
     @api.multi
-    @api.depends('start_date', 'start_time')
+    @api.depends("start_date", "start_time")
     def _compute_toll_date(self):
         for cl in self:
             if cl.start_date:
